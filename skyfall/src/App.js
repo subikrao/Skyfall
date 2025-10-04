@@ -1,215 +1,193 @@
-// src/App.js
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Circle, Marker, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import './App.css';
+import React, { useEffect, useState, useRef } from "react";
+import Globe from "react-globe.gl";
+import { formatDistanceToNow, parseISO } from "date-fns";
+import "./App.css";
 
-// Fix for default marker icon in Leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-    iconUrl: require('leaflet/dist/images/marker-icon.png'),
-    shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
-});
+const NASA_API_BASE = "https://api.nasa.gov/neo/rest/v1";
+const DEFAULT_DENSITY = 3000; // kg/m³
+const TNT_JOULES = 4.184e9; // 1 ton TNT in joules
 
-// --- Constants and Helper Functions ---
-const ASTEROID_DENSITY_KG_M3 = 3000;
-
-const calculateImpactEnergy = (diameter, velocity) => {
-    const radius = diameter / 2;
-    const volume = (4 / 3) * Math.PI * Math.pow(radius, 3);
-    const mass = volume * ASTEROID_DENSITY_KG_M3;
-    const energyJoules = 0.5 * mass * Math.pow(velocity * 1000, 2);
-    const energyMegatons = energyJoules / 4.184e15;
-    return energyMegatons;
-};
-
-const calculateCraterDiameter = (energy) => {
-    const diameterMeters = 1.16 * Math.pow(energy * 4.184e15, 0.28);
-    return diameterMeters / 1000;
-};
-
-// --- Child Components ---
-
-const Tooltip = ({ text, children }) => (
-    <div className="tooltip">
-        {children}
-        <span className="tooltip-text">{text}</span>
-    </div>
-);
-
-const Sidebar = ({ asteroids, onSelect, selected, impactData }) => (
-    <div className="sidebar">
-        <h1>🚀 AstroAlert</h1>
-        <div className="control-group">
-            <label htmlFor="asteroid-select">1. Select a Near-Earth Asteroid</label>
-            <select id="asteroid-select" onChange={e => onSelect(e.target.value)}>
-                {/* CHANGE 1: Added value="" to the default option */}
-                <option value="">-- Choose an Asteroid --</option>
-                {asteroids.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-        </div>
-
-        {selected && (
-            <>
-                <h2>Asteroid Properties</h2>
-                <div className="info-box">
-                    <p>Diameter (km): <span>{selected.diameter.toFixed(3)}</span></p>
-                    <p>Velocity (km/s): <span>{selected.velocity.toFixed(2)}</span></p>
-                    <p>Miss Distance (km): <span>{parseInt(selected.miss_distance).toLocaleString()}</span></p>
-                </div>
-            </>
-        )}
-
-        {impactData && (
-            <>
-                <h2>Impact Consequences</h2>
-                <div className="results-box">
-                    <h3>💥 WARNING: IMPACT SIMULATED</h3>
-                    <p>Impact Energy (MT):
-                        <Tooltip text="Energy released, in megatons of TNT. The Tsar Bomba was ~50 MT.">
-                            (?)
-                        </Tooltip>
-                        <span>{impactData.energy.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                    </p>
-                    <p>Crater Diameter (km):
-                        <Tooltip text="Estimated final crater size based on impact in sedimentary rock.">
-                            (?)
-                        </Tooltip>
-                        <span>{impactData.craterDiameter.toFixed(2)}</span>
-                    </p>
-                </div>
-            </>
-        )}
-    </div>
-);
-
-const MapView = ({ onMapClick, impactLocation, craterDiameter }) => {
-    const MapEvents = () => {
-        useMapEvents({
-            click(e) {
-                onMapClick(e.latlng);
-            },
-        });
-        return null;
-    };
-
-    return (
-        <div className="main-content">
-            <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }}>
-                <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
-                <MapEvents />
-                {impactLocation && (
-                    <>
-                        <Marker position={impactLocation} />
-                        <Circle
-                            center={impactLocation}
-                            radius={craterDiameter * 1000 / 2} /* radius in meters */
-                            pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.4 }}
-                        />
-                    </>
-                )}
-            </MapContainer>
-            <div className="impact-instructions">2. Click on the map to simulate impact location</div>
-        </div>
-    );
-};
-
-// --- Main App Component ---
-
-function App() {
-    const [asteroids, setAsteroids] = useState([]);
-    const [selectedAsteroid, setSelectedAsteroid] = useState(null);
-    const [impactLocation, setImpactLocation] = useState(null);
-    const [impactData, setImpactData] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchAsteroids = async () => {
-            const API_KEY = 'jngYpdLDxinhMuqgCLVYROdKruoh5Ve19x0PJayV';
-            const API_URL = `https://api.nasa.gov/neo/rest/v1/feed/today?detailed=false&api_key=${API_KEY}`;
-
-            try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                const nearEarthObjects = data.near_earth_objects;
-
-                const asteroidList = Object.values(nearEarthObjects)
-                    .flat()
-                    .map(a => {
-                        // Safely get the min and max diameter, defaulting to 0 if not present
-                        const minDiameter = a.estimated_diameter?.kilometers?.estimated_diameter_min || 0;
-                        const maxDiameter = a.estimated_diameter?.kilometers?.estimated_diameter_max || 0;
-
-                        return {
-                            id: a.id,
-                            name: a.name,
-                            // Calculate the average diameter
-                            diameter: (minDiameter + maxDiameter) / 2,
-                            velocity: parseFloat(a.close_approach_data?.[0]?.relative_velocity?.kilometers_per_second) || 0,
-                            miss_distance: parseFloat(a.close_approach_data?.[0]?.miss_distance?.kilometers) || 0,
-                        };
-                    })
-                    .sort((a, b) => a.miss_distance - b.miss_distance)
-                    .slice(0, 20);
-
-                setAsteroids(asteroidList);
-            } catch (error) {
-                console.error("Failed to fetch asteroid data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchAsteroids();
-    }, []);
-
-    // CHANGE 2: Updated the handler to reset the state when the default option is selected
-    const handleSelectAsteroid = (id) => {
-        // If the id is empty (our default option), reset everything
-        if (!id) {
-            setSelectedAsteroid(null);
-            setImpactLocation(null);
-            setImpactData(null);
-            return;
-        }
-        const asteroid = asteroids.find(a => a.id === id);
-        setSelectedAsteroid(asteroid);
-        setImpactLocation(null);
-        setImpactData(null);
-    };
-
-    const handleMapClick = (latlng) => {
-        if (!selectedAsteroid) {
-            alert("Please select an asteroid first!");
-            return;
-        }
-        setImpactLocation(latlng);
-        const energy = calculateImpactEnergy(selectedAsteroid.diameter, selectedAsteroid.velocity);
-        const craterDiameter = calculateCraterDiameter(energy);
-        setImpactData({ energy, craterDiameter });
-    };
-
-    return (
-        <div className="App">
-            {isLoading && <div className="loading-overlay">Loading Near-Earth Asteroid Data...</div>}
-            <Sidebar
-                asteroids={asteroids}
-                selected={selectedAsteroid}
-                onSelect={handleSelectAsteroid}
-                impactData={impactData}
-            />
-            <MapView
-                onMapClick={handleMapClick}
-                impactLocation={impactLocation}
-                craterDiameter={impactData ? impactData.craterDiameter : 0}
-            />
-        </div>
-    );
+function cacheFetch(key, fetcher, ttlMs = 5 * 60 * 1000) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (Date.now() - obj.t < ttlMs) return Promise.resolve(obj.v);
+    }
+  } catch {}
+  return fetcher().then((v) => {
+    try {
+      localStorage.setItem(key, JSON.stringify({ t: Date.now(), v }));
+    } catch {}
+    return v;
+  });
 }
 
-export default App;
+function metersFromKilometers(km) {
+  return km * 1000;
+}
+function footballFields(d) {
+  return d / 91.44;
+}
+function statueOfLibertyHeights(d) {
+  return d / 93;
+}
+function empireState(d) {
+  return d / 381;
+}
+function titanicLengths(d) {
+  return d / 269;
+}
+function olympicPoolsVolume(vol_m3) {
+  const poolVol = 50 * 25 * 2;
+  return vol_m3 / poolVol;
+}
+
+function sphereVolume(r) {
+  return (4 / 3) * Math.PI * Math.pow(r, 3);
+}
+function kineticEnergyJ(mass, v) {
+  return 0.5 * mass * v * v;
+}
+function tntEquivalentJoules(E) {
+  const megatons = E / 4.184e15;
+  return { megatons, kilotons: E / 4.184e12 };
+}
+function estimateMass(d_km, density = DEFAULT_DENSITY) {
+  const r = metersFromKilometers(d_km) / 2;
+  return sphereVolume(r) * density;
+}
+function craterDiameterMetersApprox(E) {
+  return 0.07 * Math.pow(E, 0.3);
+}
+function severityCategory(megatons) {
+  if (megatons < 0.001) return { color: "🟢", text: "Spectacular light show, no damage" };
+  if (megatons < 1) return { color: "🟡", text: "Local / regional damage possible" };
+  if (megatons < 100) return { color: "🟠", text: "Continental catastrophe" };
+  return { color: "🔴", text: "Extinction-level event" };
+}
+
+export default function App() {
+  const [apiKey, setApiKey] = useState(localStorage.getItem("NASA_API_KEY") || "");
+  const [neos, setNeos] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const globeEl = useRef();
+  const [arcs, setArcs] = useState([]);
+  const [userLoc, setUserLoc] = useState(null);
+  const [geocodeStatus, setGeocodeStatus] = useState("");
+
+  useEffect(() => {
+    if (apiKey) localStorage.setItem("NASA_API_KEY", apiKey);
+  }, [apiKey]);
+
+  useEffect(() => {
+    if (!apiKey) return;
+    cacheFetch(
+      "nasa_neows_browse",
+      () => fetch(`${NASA_API_BASE}/neo/browse?api_key=${apiKey}`).then((r) => r.json())
+    )
+      .then((data) => setNeos(data.near_earth_objects || []))
+      .catch(() => setNeos([]));
+  }, [apiKey]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const cad = selected.close_approach_data?.[0];
+    if (!cad) return;
+
+    const missKm = parseFloat(cad.miss_distance.kilometers);
+    const willHit = cad.orbiting_body === "Earth" && missKm < 6371;
+    const seed = selected.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
+    const lat = ((seed * 37) % 180) - 90;
+    const lng = ((seed * 97) % 360) - 180;
+
+    const arc = {
+      startLat: lat + 40,
+      startLng: lng - 80,
+      endLat: lat,
+      endLng: lng,
+      color: willHit ? "red" : "green",
+    };
+    setArcs([arc]);
+    globeEl.current?.pointOfView({ lat: arc.endLat, lng: arc.endLng, altitude: 1.5 }, 1500);
+  }, [selected]);
+
+  const handleSelectChange = (e) => {
+    const id = e.target.value;
+    const neo = neos.find((n) => n.id === id);
+    if (!neo) return;
+    cacheFetch(`nasa_neo_${id}`, () =>
+      fetch(`${NASA_API_BASE}/neo/${id}?api_key=${apiKey}`).then((r) => r.json())
+    ).then(setSelected);
+  };
+
+  const geocodeCity = (q) => {
+    setGeocodeStatus("Looking up city...");
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res && res[0]) {
+          const { lat, lon, display_name } = res[0];
+          setUserLoc({ lat: parseFloat(lat), lon: parseFloat(lon), name: display_name });
+          setGeocodeStatus("Found: " + display_name);
+        } else setGeocodeStatus("Not found");
+      })
+      .catch(() => setGeocodeStatus("Error"));
+  };
+
+  function renderAstroDetails() {
+    if (!selected) return <div className="card">Choose an asteroid to see details</div>;
+    const est_d_km = selected.estimated_diameter.kilometers.estimated_diameter_max;
+    const v_kms = parseFloat(selected.close_approach_data?.[0]?.relative_velocity.kilometers_per_second || 20);
+    const v_ms = v_kms * 1000;
+    const mass = estimateMass(est_d_km);
+    const E = kineticEnergyJ(mass, v_ms);
+    const tnt = tntEquivalentJoules(E);
+    const crater_m = craterDiameterMetersApprox(E);
+    const sev = severityCategory(tnt.megatons);
+
+    return (
+      <div className="card">
+        <h2>{selected.name}</h2>
+        <p>Diameter: {est_d_km.toFixed(3)} km</p>
+        <p>Velocity: {v_kms} km/s</p>
+        <p>Energy: {tnt.kilotons.toFixed(2)} kilotons TNT</p>
+        <p>Crater: {crater_m.toFixed(0)} m</p>
+        <p>
+          Severity: {sev.color} {sev.text}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="App">
+      <h1>🚀 Skyfall: Asteroid Impact Visualizer</h1>
+
+      <div className="panel">
+        <label>NASA API Key:</label>
+        <input
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="Get from api.nasa.gov (use DEMO_KEY)"
+        />
+
+        <label>Select Asteroid:</label>
+        <select onChange={handleSelectChange}>
+          <option value="">-- choose asteroid --</option>
+          {neos.map((n) => (
+            <option key={n.id} value={n.id}>
+              {n.name} ({n.id})
+            </option>
+          ))}
+        </select>
+
+        {renderAstroDetails()}
+      </div>
+
+      <div className="globe-container">
+        <Globe ref={globeEl} arcsData={arcs} globeImageUrl="https://unpkg.com/three-globe/example/img/earth-dark.jpg" />
+      </div>
+    </div>
+  );
+}
