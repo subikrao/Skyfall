@@ -37,6 +37,7 @@ h1 {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+    font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Poppins", sans-serif;
 }
 
 .subtitle {
@@ -49,6 +50,7 @@ h1 {
 .api-input,
 select {
     margin: 10px;
+    width: 50%;
     padding: 10px;
     font-size: 1rem;
     border-radius: 8px;
