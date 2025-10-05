@@ -30,6 +30,112 @@ const App = () => {
             });
     }, []);
 
+// Initialize particles.js background
+useEffect(() => {
+    if (window.particlesJS) {
+        window.particlesJS('particles-js', {
+            "particles": {
+                "number": {
+                    "value": 100,
+                    "density": {
+                        "enable": true,
+                        "value_area": 800
+                    }
+                },
+                "color": {
+                    "value": "#667eea"
+                },
+                "shape": {
+                    "type": "circle",
+                    "stroke": {
+                        "width": 0,
+                        "color": "#000000"
+                    }
+                },
+                "opacity": {
+                    "value": 0.5,
+                    "random": false,
+                    "anim": {
+                        "enable": false,
+                        "speed": 1,
+                        "opacity_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "size": {
+                    "value": 3,
+                    "random": true,
+                    "anim": {
+                        "enable": false,
+                        "speed": 40,
+                        "size_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "line_linked": {
+                    "enable": true,
+                    "distance": 150,
+                    "color": "#667eea",
+                    "opacity": 0.3,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 2,
+                    "direction": "none",
+                    "random": false,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false,
+                    "attract": {
+                        "enable": false,
+                        "rotateX": 600,
+                        "rotateY": 1200
+                    }
+                }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": {
+                        "enable": true,
+                        "mode": "grab"
+                    },
+                    "onclick": {
+                        "enable": true,
+                        "mode": "push"
+                    },
+                    "resize": true
+                },
+                "modes": {
+                    "grab": {
+                        "distance": 140,
+                        "line_linked": {
+                            "opacity": 1
+                        }
+                    },
+                    "push": {
+                        "particles_nb": 4
+                    }
+                }
+            },
+            "retina_detect": true
+        });
+    }
+}, []);
+
+    const hashCode = (str) => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash);
+    };
+
+    const mod = (n, m) => ((n % m) + m) % m;
+
     const handleSelect = (id) => {
         const asteroid = neos.find((a) => a.id === id);
         if (!asteroid) return;
@@ -43,10 +149,18 @@ const App = () => {
         );
 
         // Create trajectory arc
-        const startLat = Math.random() * 180 - 90;
-        const startLng = Math.random() * 360 - 180;
-        const endLat = Math.random() * 180 - 90;
-        const endLng = Math.random() * 360 - 180;
+        // Generate deterministic coordinates based on asteroid ID
+        const centerLat = (mod(hashCode(asteroid.id), 180) - 90);
+        const centerLng = (mod(hashCode(asteroid.name || asteroid.id + 'lon'), 360) - 180);
+
+        // Create a straight line parallel to Earth's surface
+        const arcLength = 90; // degrees of arc
+        const startLng = centerLng - arcLength / 2;
+        const endLng = centerLng + arcLength / 2;
+
+        // Keep same latitude for straight line (no variation)
+        const startLat = centerLat;
+        const endLat = centerLat;
 
         setArcsData([{
             startLat,
@@ -54,7 +168,8 @@ const App = () => {
             endLat,
             endLng,
             color: missDistance < 12742 ? ['#ff4444', '#ff0000'] : ['#44ff44', '#00ff00'],
-            label: asteroid.name
+            label: asteroid.name,
+            altitude: 0.2  
         }]);
 
         // Energy: Joules and kilotons TNT
@@ -153,6 +268,8 @@ const App = () => {
                     arcStroke={0.5}
                     arcsTransitionDuration={1000}
                     arcLabel="label"
+                    arcAltitude={0.15}
+                    arcAltitudeAutoScale={0.5}
                 />
             </div>
 
