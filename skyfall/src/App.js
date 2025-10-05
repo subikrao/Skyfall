@@ -274,7 +274,7 @@ const AstroDodgeGame = ({ onClose }) => {
                 })).filter(ast => {
                     if (ast.y > 100) {
                         setHealth(h => {
-                            const newHealth = Math.max(0, h - 20);
+                            const newHealth = Math.max(0, h - 10);
                             if (newHealth === 0) {
                                 endGame();
                             }
@@ -320,7 +320,7 @@ const AstroDodgeGame = ({ onClose }) => {
                 <button className="game-close" onClick={onClose}>✕</button>
 
                 <div className="game-header">
-                    <h2><span style={{WebkitTextFillColor: 'initial', background: 'none'}}>🌠 </span> Astro Dodge</h2>
+                    <h2><span style={{ WebkitTextFillColor: 'initial', background: 'none' }}>🌠 </span> Astro Dodge</h2>
                     <div className="game-stats">
                         <div className="stat">
                             <span className="stat-label">Score:</span>
@@ -350,11 +350,11 @@ const AstroDodgeGame = ({ onClose }) => {
                     {gameState === 'ready' && (
                         <div className="game-message">
                             <h3>Defend Earth!</h3>
-                            <p>Click asteroids before they hit Earth</p>
+                            <p>Click asteroids to destroy them before they hit Earth</p>
                             <p className="game-instructions">
-                                • Small asteroids = 15 points<br/>
-                                • Medium asteroids = 10 points<br/>
-                                • Large asteroids = 5 points<br/>
+                                • Small asteroids = 15 points<br />
+                                • Medium asteroids = 10 points<br />
+                                • Large asteroids = 5 points<br />
                                 • Missing an asteroid costs 20% health
                             </p>
                             <button className="game-start-btn" onClick={startGame}>
@@ -390,7 +390,11 @@ const AstroDodgeGame = ({ onClose }) => {
                                     }}
                                     onClick={() => handleAsteroidClick(asteroid)}
                                 >
-                                    ☄️
+                                    <img
+                                        src="/asteroid.png"
+                                        alt="asteroid"
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                    />
                                 </div>
                             ))}
 
@@ -403,7 +407,11 @@ const AstroDodgeGame = ({ onClose }) => {
                                         top: `${explosion.y}%`
                                     }}
                                 >
-                                    💥
+                                    <img
+                                        src="/explosion.png"
+                                        alt="explosion"
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                    />
                                 </div>
                             ))}
 

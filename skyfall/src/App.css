@@ -247,8 +247,9 @@ h3 {
 
 .stat-label {
     font-size: 0.9rem;
-    color: #a0a0b0;
+    color: #ffffff;
     margin-bottom: 5px;
+    user-select: none;
 }
 
 .stat-value {
@@ -263,9 +264,10 @@ h3 {
 
 .health-label {
     font-size: 0.9rem;
-    color: #a0a0b0;
+    color: #ffffff;
     margin-bottom: 8px;
     text-align: center;
+    user-select: none;
 }
 
 .health-bar {
@@ -285,8 +287,11 @@ h3 {
 
 .game-area {
     width: 100%;
-    height: 500px;
-    background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3e 100%);
+    height: 450px;
+    background-image: url('/public/game_background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     border-radius: 15px;
     position: relative;
     overflow: hidden;
@@ -300,6 +305,13 @@ h3 {
     transition: transform 0.1s ease;
     user-select: none;
     animation: asteroidSpin 2s linear infinite;
+}
+
+.asteroid img {
+    pointer-events: none;
+    /* Prevents click issues */
+    filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.5));
+    /* Optional glow effect */
 }
 
 .asteroid:hover {
@@ -333,10 +345,12 @@ h3 {
 
 .explosion {
     position: absolute;
-    font-size: 40px;
+    width: 80px;
+    height: 80px;
     pointer-events: none;
     animation: explode 0.5s ease-out;
     transform: translate(-50%, -50%);
+    user-select: none;
 }
 
 @keyframes explode {
@@ -352,6 +366,7 @@ h3 {
 
 .earth-defender {
     position: absolute;
+    user-select: none;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
