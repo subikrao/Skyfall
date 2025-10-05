@@ -3,15 +3,17 @@ import Globe from "react-globe.gl";
 import "./App.css";
 
 const App = () => {
-    const [apiKey, setApiKey] = useState("");
     const [neos, setNeos] = useState([]);
     const [selected, setSelected] = useState(null);
     const [impactData, setImpactData] = useState(null);
     const [arcsData, setArcsData] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const API_KEY = "jngYpdLDxinhMuqgCLVYROdKruoh5Ve19x0PJayV";
 
     useEffect(() => {
-        if (!apiKey) return;
-        fetch(`https://api.nasa.gov/neo/rest/v1/feed?api_key=${apiKey}`)
+        setLoading(true);
+        fetch(`https://api.nasa.gov/neo/rest/v1/feed?api_key=${API_KEY}`)
             .then((res) => res.json())
             .then((data) => {
                 const allNeos = [];
@@ -19,9 +21,13 @@ const App = () => {
                     allNeos.push(...data.near_earth_objects[date]);
                 });
                 setNeos(allNeos);
+                setLoading(false);
             })
-            .catch((err) => console.error(err));
-    }, [apiKey]);
+            .catch((err) => {
+                console.error(err);
+                setLoading(false);
+            });
+    }, []);
 
     const handleSelect = (id) => {
         const asteroid = neos.find((a) => a.id === id);
@@ -108,13 +114,15 @@ const App = () => {
 
     return (
         <div className="app">
-            <h1><span style={{ WebkitTextFillColor: 'initial', background: 'none' }}>🌠 </span>Skyfall: Asteroid Impact Visualizer</h1>      <p className="subtitle">Explore near-Earth objects and visualize their potential impact on our planet</p>
-            <input
-                className="api-input"
-                placeholder="Enter NASA API Key (e.g., DEMO_KEY)"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-            />
+            <h1><span style={{ WebkitTextFillColor: 'initial', background: 'none' }}>🌠 </span>Skyfall: Asteroid Impact Visualizer</h1>
+            <p className="subtitle">Explore near-Earth objects and visualize their potential impact on our planet</p>
+            
+            <p className="description">
+                {loading 
+                    ? "Loading near-Earth asteroids..." 
+                    : `Discover ${neos.length} near-Earth objects (NEOs) making close approaches to Earth this week. Select an asteroid below to visualize its trajectory, analyze impact potential, and understand the scale of these cosmic visitors.`
+                }
+            </p>
 
             {neos.length > 0 && (
                 <select onChange={(e) => handleSelect(e.target.value)}>
