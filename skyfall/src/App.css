@@ -1,25 +1,30 @@
-body {
-    background-color: #0a0a1a;
-    background-image: radial-gradient(2px 2px at 20% 30%, white, transparent), radial-gradient(2px 2px at 60% 70%, white, transparent), radial-gradient(1px 1px at 50% 50%, white, transparent), radial-gradient(1px 1px at 80% 10%, white, transparent), radial-gradient(2px 2px at 90% 60%, white, transparent), radial-gradient(1px 1px at 33% 80%, white, transparent), radial-gradient(1px 1px at 15% 60%, white, transparent), radial-gradient(2px 2px at 75% 90%, white, transparent);
-    background-size: 200% 200%;
-    background-position: 0% 0%, 40% 40%, 80% 80%, 20% 60%, 60% 20%, 90% 90%, 10% 10%, 50% 50%;
-    animation: twinkle 8s ease-in-out infinite;
+body,
+html {
+    height: 100%;
+    background: #0a0a1a;
     color: #fff;
     font-family: "Poppins", sans-serif;
     text-align: center;
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    position: relative;
 }
 
-@keyframes twinkle {
-    0%,
-    100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
+#particles-js {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: 50% 50%;
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    z-index: 0;
+}
+
+#root {
+    position: relative;
+    z-index: 1;
 }
 
 .app {
@@ -28,6 +33,7 @@ body {
     align-items: center;
     padding: 20px;
     position: relative;
+    z-index: 1;
 }
 
 h1 {
@@ -247,8 +253,9 @@ h3 {
 
 .stat-label {
     font-size: 0.9rem;
-    color: #a0a0b0;
+    color: #ffffff;
     margin-bottom: 5px;
+    user-select: none;
 }
 
 .stat-value {
@@ -263,9 +270,10 @@ h3 {
 
 .health-label {
     font-size: 0.9rem;
-    color: #a0a0b0;
+    color: #ffffff;
     margin-bottom: 8px;
     text-align: center;
+    user-select: none;
 }
 
 .health-bar {
@@ -285,8 +293,11 @@ h3 {
 
 .game-area {
     width: 100%;
-    height: 500px;
-    background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3e 100%);
+    height: 450px;
+    background-image: url('/public/game_background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     border-radius: 15px;
     position: relative;
     overflow: hidden;
@@ -300,6 +311,13 @@ h3 {
     transition: transform 0.1s ease;
     user-select: none;
     animation: asteroidSpin 2s linear infinite;
+}
+
+.asteroid img {
+    pointer-events: none;
+    /* Prevents click issues */
+    filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.5));
+    /* Optional glow effect */
 }
 
 .asteroid:hover {
@@ -320,23 +338,25 @@ h3 {
 }
 
 .asteroid-small {
-    font-size: 25px;
+    font-size: 50px;
 }
 
 .asteroid-medium {
-    font-size: 35px;
+    font-size: 65px;
 }
 
 .asteroid-large {
-    font-size: 45px;
+    font-size: 80px;
 }
 
 .explosion {
     position: absolute;
-    font-size: 40px;
+    width: 80px;
+    height: 80px;
     pointer-events: none;
     animation: explode 0.5s ease-out;
     transform: translate(-50%, -50%);
+    user-select: none;
 }
 
 @keyframes explode {
@@ -352,6 +372,7 @@ h3 {
 
 .earth-defender {
     position: absolute;
+    user-select: none;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
@@ -447,6 +468,61 @@ h3 {
 
 .game-start-btn:active {
     transform: translateY(0);
+}
+
+.difficulty-selector {
+    margin-bottom: 20px;
+}
+
+.difficulty-label {
+    font-size: 0.9rem;
+    color: #a0a0b0;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.difficulty-slider-container {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    background: linear-gradient(to right, #4ade80 0%, #facc15 33%, #fb923c 66%, #ef4444 100%);
+    border-radius: 25px;
+    cursor: pointer;
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    overflow: hidden;
+}
+
+.difficulty-labels {
+    font-size: 0.8rem;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    pointer-events: none;
+}
+
+.difficulty-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.6);
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.difficulty-thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 19px;
+    height: 19px;
+    border-style: dotted;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: left 0.2s ease;
+    pointer-events: none;
 }
 
 

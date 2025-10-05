@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from "react-globe.gl";
 import "./App.css";
 
@@ -30,6 +30,112 @@ const App = () => {
             });
     }, []);
 
+// Initialize particles.js background
+useEffect(() => {
+    if (window.particlesJS) {
+        window.particlesJS('particles-js', {
+            "particles": {
+                "number": {
+                    "value": 100,
+                    "density": {
+                        "enable": true,
+                        "value_area": 800
+                    }
+                },
+                "color": {
+                    "value": "#667eea"
+                },
+                "shape": {
+                    "type": "circle",
+                    "stroke": {
+                        "width": 0,
+                        "color": "#000000"
+                    }
+                },
+                "opacity": {
+                    "value": 0.5,
+                    "random": false,
+                    "anim": {
+                        "enable": false,
+                        "speed": 1,
+                        "opacity_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "size": {
+                    "value": 3,
+                    "random": true,
+                    "anim": {
+                        "enable": false,
+                        "speed": 40,
+                        "size_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "line_linked": {
+                    "enable": true,
+                    "distance": 150,
+                    "color": "#667eea",
+                    "opacity": 0.3,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 2,
+                    "direction": "none",
+                    "random": false,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false,
+                    "attract": {
+                        "enable": false,
+                        "rotateX": 600,
+                        "rotateY": 1200
+                    }
+                }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": {
+                        "enable": true,
+                        "mode": "grab"
+                    },
+                    "onclick": {
+                        "enable": true,
+                        "mode": "push"
+                    },
+                    "resize": true
+                },
+                "modes": {
+                    "grab": {
+                        "distance": 140,
+                        "line_linked": {
+                            "opacity": 1
+                        }
+                    },
+                    "push": {
+                        "particles_nb": 4
+                    }
+                }
+            },
+            "retina_detect": true
+        });
+    }
+}, []);
+
+    const hashCode = (str) => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash);
+    };
+
+    const mod = (n, m) => ((n % m) + m) % m;
+
     const handleSelect = (id) => {
         const asteroid = neos.find((a) => a.id === id);
         if (!asteroid) return;
@@ -43,10 +149,18 @@ const App = () => {
         );
 
         // Create trajectory arc
-        const startLat = Math.random() * 180 - 90;
-        const startLng = Math.random() * 360 - 180;
-        const endLat = Math.random() * 180 - 90;
-        const endLng = Math.random() * 360 - 180;
+        // Generate deterministic coordinates based on asteroid ID
+        const centerLat = (mod(hashCode(asteroid.id), 180) - 90);
+        const centerLng = (mod(hashCode(asteroid.name || asteroid.id + 'lon'), 360) - 180);
+
+        // Create a straight line parallel to Earth's surface
+        const arcLength = 90; // degrees of arc
+        const startLng = centerLng - arcLength / 2;
+        const endLng = centerLng + arcLength / 2;
+
+        // Keep same latitude for straight line (no variation)
+        const startLat = centerLat;
+        const endLat = centerLat;
 
         setArcsData([{
             startLat,
@@ -54,7 +168,8 @@ const App = () => {
             endLat,
             endLng,
             color: missDistance < 12742 ? ['#ff4444', '#ff0000'] : ['#44ff44', '#00ff00'],
-            label: asteroid.name
+            label: asteroid.name,
+            altitude: 0.2  
         }]);
 
         // Energy: Joules and kilotons TNT
@@ -121,10 +236,10 @@ const App = () => {
 
             <h1><span style={{ WebkitTextFillColor: 'initial', background: 'none' }}>🌠 </span>Skyfall: Asteroid Impact Visualizer</h1>
             <p className="subtitle">Explore near-Earth objects and visualize their potential impact on our planet</p>
-            
+
             <p className="description">
-                {loading 
-                    ? "Loading near-Earth asteroids..." 
+                {loading
+                    ? "Loading near-Earth asteroids..."
                     : `Discover ${neos.length} near-Earth objects (NEOs) making close approaches to Earth this week. Select an asteroid below to visualize its trajectory, analyze impact potential, and understand the scale of these cosmic visitors.`
                 }
             </p>
@@ -153,6 +268,8 @@ const App = () => {
                     arcStroke={0.5}
                     arcsTransitionDuration={1000}
                     arcLabel="label"
+                    arcAltitude={0.15}
+                    arcAltitudeAutoScale={0.5}
                 />
             </div>
 
@@ -199,14 +316,23 @@ const App = () => {
     );
 };
 
+// Difficulty settings
+const difficultySettings = {
+    'super easy': { spawnRate: 1200, speedMultiplier: 0.4 },
+    'easy': { spawnRate: 800, speedMultiplier: 0.6 },
+    'medium': { spawnRate: 600, speedMultiplier: 0.8 },
+    'hard': { spawnRate: 400, speedMultiplier: 1.2 }
+};
+
 // Astro Dodge Game Component
 const AstroDodgeGame = ({ onClose }) => {
-    const [gameState, setGameState] = useState('ready'); // ready, playing, gameover
+    const [gameState, setGameState] = useState('ready');
     const [score, setScore] = useState(0);
     const [health, setHealth] = useState(100);
     const [asteroids, setAsteroids] = useState([]);
     const [explosions, setExplosions] = useState([]);
     const [highScore, setHighScore] = useState(0);
+    const [difficulty, setDifficulty] = useState('easy'); // new state
     const gameAreaRef = useRef(null);
     const animationFrameRef = useRef(null);
     const asteroidIdRef = useRef(0);
@@ -219,12 +345,41 @@ const AstroDodgeGame = ({ onClose }) => {
         setExplosions([]);
     };
 
-    const endGame = () => {
+    const endGame = useCallback(() => {
         setGameState('gameover');
+        setAsteroids([]);
+    }, []);
+
+    useEffect(() => {
         if (score > highScore) {
             setHighScore(score);
         }
-        setAsteroids([]);
+    }, [score, highScore]);
+
+    const handleSliderClick = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const percentage = x / rect.width;
+
+        if (percentage < 0.25) {
+            setDifficulty('super easy');
+        } else if (percentage < 0.5) {
+            setDifficulty('easy');
+        } else if (percentage < 0.75) {
+            setDifficulty('medium');
+        } else {
+            setDifficulty('hard');
+        }
+    };
+
+    const getThumbPosition = () => {
+        const positions = {
+            'super easy': '12.5%',
+            'easy': '37.5%',
+            'medium': '62.5%',
+            'hard': '87.5%'
+        };
+        return positions[difficulty];
     };
 
     useEffect(() => {
@@ -234,8 +389,12 @@ const AstroDodgeGame = ({ onClose }) => {
             if (gameState !== 'playing') return;
 
             const size = Math.random() > 0.7 ? 'small' : Math.random() > 0.4 ? 'medium' : 'large';
-            const sizeMap = { small: 30, medium: 50, large: 70 };
-            const speedMap = { small: 3 + score / 100, medium: 2 + score / 150, large: 1.5 + score / 200 };
+            const sizeMap = { small: 60, medium: 80, large: 100 };
+            const speedMap = {
+                small: (1.5 + score / 200) * difficultySettings[difficulty].speedMultiplier,
+                medium: (1.2 + score / 250) * difficultySettings[difficulty].speedMultiplier,
+                large: (0.8 + score / 300) * difficultySettings[difficulty].speedMultiplier
+            };
             const pointsMap = { small: 15, medium: 10, large: 5 };
 
             const newAsteroid = {
@@ -251,10 +410,13 @@ const AstroDodgeGame = ({ onClose }) => {
             setAsteroids(prev => [...prev, newAsteroid]);
         };
 
-        const spawnInterval = setInterval(spawnAsteroid, Math.max(800 - score * 2, 300));
+        const spawnInterval = setInterval(
+            spawnAsteroid,
+            Math.max(difficultySettings[difficulty].spawnRate - score * 2, 300)
+        );
 
         return () => clearInterval(spawnInterval);
-    }, [gameState, score]);
+    }, [gameState, score, difficulty]);
 
     useEffect(() => {
         if (gameState !== 'playing') return;
@@ -290,12 +452,12 @@ const AstroDodgeGame = ({ onClose }) => {
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [gameState]);
+    }, [gameState, endGame]);
 
     const handleAsteroidClick = (asteroid) => {
         setAsteroids(prev => prev.filter(a => a.id !== asteroid.id));
         setScore(s => s + asteroid.points);
-        
+
         setExplosions(prev => [...prev, {
             id: asteroid.id,
             x: asteroid.x,
@@ -311,9 +473,9 @@ const AstroDodgeGame = ({ onClose }) => {
         <div className="game-overlay">
             <div className="game-modal">
                 <button className="game-close" onClick={onClose}>✕</button>
-                
+
                 <div className="game-header">
-                    <h2>🌠 Astro Dodge</h2>
+                    <h2><span style={{ WebkitTextFillColor: 'initial', background: 'none' }}>🌠 </span> Astro Dodge</h2>
                     <div className="game-stats">
                         <div className="stat">
                             <span className="stat-label">Score:</span>
@@ -326,12 +488,25 @@ const AstroDodgeGame = ({ onClose }) => {
                     </div>
                 </div>
 
+                <div className="difficulty-selector">
+                    <div className="difficulty-label">Difficulty: {difficulty.toUpperCase()}</div>
+                    <div className="difficulty-slider-container" onClick={handleSliderClick}>
+                        <div className="difficulty-labels">
+                            <div className="difficulty-section">SUPER EASY</div>
+                            <div className="difficulty-section">EASY</div>
+                            <div className="difficulty-section">MEDIUM</div>
+                            <div className="difficulty-section">HARD</div>
+                        </div>
+                        <div className="difficulty-thumb" style={{ left: getThumbPosition() }} />
+                    </div>
+                </div>
+
                 <div className="health-bar-container">
                     <div className="health-label">Earth Health: {health}%</div>
                     <div className="health-bar">
-                        <div 
-                            className="health-fill" 
-                            style={{ 
+                        <div
+                            className="health-fill"
+                            style={{
                                 width: `${health}%`,
                                 backgroundColor: health > 60 ? '#4ade80' : health > 30 ? '#facc15' : '#ef4444'
                             }}
@@ -345,9 +520,9 @@ const AstroDodgeGame = ({ onClose }) => {
                             <h3>Defend Earth!</h3>
                             <p>Click asteroids before they hit Earth</p>
                             <p className="game-instructions">
-                                • Small asteroids = 15 points<br/>
-                                • Medium asteroids = 10 points<br/>
-                                • Large asteroids = 5 points<br/>
+                                • Small asteroids = 15 points<br />
+                                • Medium asteroids = 10 points<br />
+                                • Large asteroids = 5 points<br />
                                 • Missing an asteroid costs 20% health
                             </p>
                             <button className="game-start-btn" onClick={startGame}>
@@ -383,7 +558,11 @@ const AstroDodgeGame = ({ onClose }) => {
                                     }}
                                     onClick={() => handleAsteroidClick(asteroid)}
                                 >
-                                    ☄️
+                                    <img
+                                        src="/asteroid.png"
+                                        alt="asteroid"
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                    />
                                 </div>
                             ))}
 
@@ -396,7 +575,11 @@ const AstroDodgeGame = ({ onClose }) => {
                                         top: `${explosion.y}%`
                                     }}
                                 >
-                                    💥
+                                    <img
+                                        src="/explosion.png"
+                                        alt="explosion"
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                    />
                                 </div>
                             ))}
 
