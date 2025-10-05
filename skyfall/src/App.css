@@ -464,6 +464,61 @@ h3 {
     transform: translateY(0);
 }
 
+.difficulty-selector {
+    margin-bottom: 20px;
+}
+
+.difficulty-label {
+    font-size: 0.9rem;
+    color: #a0a0b0;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.difficulty-slider-container {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    background: linear-gradient(to right, #4ade80 0%, #facc15 33%, #fb923c 66%, #ef4444 100%);
+    border-radius: 25px;
+    cursor: pointer;
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    overflow: hidden;
+}
+
+.difficulty-labels {
+    font-size: 0.8rem;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    pointer-events: none;
+}
+
+.difficulty-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.6);
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.difficulty-thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 19px;
+    height: 19px;
+    border-style: dotted;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: left 0.2s ease;
+    pointer-events: none;
+}
+
 
 /* Responsive Design */
 

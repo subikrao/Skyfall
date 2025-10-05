@@ -199,14 +199,23 @@ const App = () => {
     );
 };
 
+// Difficulty settings
+const difficultySettings = {
+    'super easy': { spawnRate: 1200, speedMultiplier: 0.4 },
+    'easy': { spawnRate: 800, speedMultiplier: 0.6 },
+    'medium': { spawnRate: 600, speedMultiplier: 0.8 },
+    'hard': { spawnRate: 400, speedMultiplier: 1.2 }
+};
+
 // Astro Dodge Game Component
 const AstroDodgeGame = ({ onClose }) => {
-    const [gameState, setGameState] = useState('ready'); // ready, playing, gameover
+    const [gameState, setGameState] = useState('ready');
     const [score, setScore] = useState(0);
     const [health, setHealth] = useState(100);
     const [asteroids, setAsteroids] = useState([]);
     const [explosions, setExplosions] = useState([]);
     const [highScore, setHighScore] = useState(0);
+    const [difficulty, setDifficulty] = useState('easy'); // new state
     const gameAreaRef = useRef(null);
     const animationFrameRef = useRef(null);
     const asteroidIdRef = useRef(0);
@@ -230,6 +239,32 @@ const AstroDodgeGame = ({ onClose }) => {
         }
     }, [score, highScore]);
 
+    const handleSliderClick = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const percentage = x / rect.width;
+
+        if (percentage < 0.25) {
+            setDifficulty('super easy');
+        } else if (percentage < 0.5) {
+            setDifficulty('easy');
+        } else if (percentage < 0.75) {
+            setDifficulty('medium');
+        } else {
+            setDifficulty('hard');
+        }
+    };
+
+    const getThumbPosition = () => {
+        const positions = {
+            'super easy': '12.5%',
+            'easy': '37.5%',
+            'medium': '62.5%',
+            'hard': '87.5%'
+        };
+        return positions[difficulty];
+    };
+
     useEffect(() => {
         if (gameState !== 'playing') return;
 
@@ -239,9 +274,9 @@ const AstroDodgeGame = ({ onClose }) => {
             const size = Math.random() > 0.7 ? 'small' : Math.random() > 0.4 ? 'medium' : 'large';
             const sizeMap = { small: 60, medium: 80, large: 100 };
             const speedMap = {
-                small: (1.5 + score / 200) * 0.5,
-                medium: (1.2 + score / 250) * 0.5,
-                large: (0.8 + score / 300) * 0.5
+                small: (1.5 + score / 200) * difficultySettings[difficulty].speedMultiplier,
+                medium: (1.2 + score / 250) * difficultySettings[difficulty].speedMultiplier,
+                large: (0.8 + score / 300) * difficultySettings[difficulty].speedMultiplier
             };
             const pointsMap = { small: 15, medium: 10, large: 5 };
 
@@ -258,10 +293,13 @@ const AstroDodgeGame = ({ onClose }) => {
             setAsteroids(prev => [...prev, newAsteroid]);
         };
 
-        const spawnInterval = setInterval(spawnAsteroid, Math.max(800 - score * 2, 300));
+        const spawnInterval = setInterval(
+            spawnAsteroid,
+            Math.max(difficultySettings[difficulty].spawnRate - score * 2, 300)
+        );
 
         return () => clearInterval(spawnInterval);
-    }, [gameState, score]);
+    }, [gameState, score, difficulty]);
 
     useEffect(() => {
         if (gameState !== 'playing') return;
@@ -274,7 +312,7 @@ const AstroDodgeGame = ({ onClose }) => {
                 })).filter(ast => {
                     if (ast.y > 100) {
                         setHealth(h => {
-                            const newHealth = Math.max(0, h - 10);
+                            const newHealth = Math.max(0, h - 20);
                             if (newHealth === 0) {
                                 endGame();
                             }
@@ -333,6 +371,19 @@ const AstroDodgeGame = ({ onClose }) => {
                     </div>
                 </div>
 
+                <div className="difficulty-selector">
+                    <div className="difficulty-label">Difficulty: {difficulty.toUpperCase()}</div>
+                    <div className="difficulty-slider-container" onClick={handleSliderClick}>
+                        <div className="difficulty-labels">
+                            <div className="difficulty-section">SUPER EASY</div>
+                            <div className="difficulty-section">EASY</div>
+                            <div className="difficulty-section">MEDIUM</div>
+                            <div className="difficulty-section">HARD</div>
+                        </div>
+                        <div className="difficulty-thumb" style={{ left: getThumbPosition() }} />
+                    </div>
+                </div>
+
                 <div className="health-bar-container">
                     <div className="health-label">Earth Health: {health}%</div>
                     <div className="health-bar">
@@ -350,7 +401,7 @@ const AstroDodgeGame = ({ onClose }) => {
                     {gameState === 'ready' && (
                         <div className="game-message">
                             <h3>Defend Earth!</h3>
-                            <p>Click asteroids to destroy them before they hit Earth</p>
+                            <p>Click asteroids before they hit Earth</p>
                             <p className="game-instructions">
                                 • Small asteroids = 15 points<br />
                                 • Medium asteroids = 10 points<br />
