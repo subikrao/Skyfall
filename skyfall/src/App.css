@@ -320,15 +320,15 @@ h3 {
 }
 
 .asteroid-small {
-    font-size: 25px;
+    font-size: 50px;
 }
 
 .asteroid-medium {
-    font-size: 35px;
+    font-size: 65px;
 }
 
 .asteroid-large {
-    font-size: 45px;
+    font-size: 80px;
 }
 
 .explosion {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from "react-globe.gl";
 import "./App.css";
 
@@ -121,10 +121,10 @@ const App = () => {
 
             <h1><span style={{ WebkitTextFillColor: 'initial', background: 'none' }}>🌠 </span>Skyfall: Asteroid Impact Visualizer</h1>
             <p className="subtitle">Explore near-Earth objects and visualize their potential impact on our planet</p>
-            
+
             <p className="description">
-                {loading 
-                    ? "Loading near-Earth asteroids..." 
+                {loading
+                    ? "Loading near-Earth asteroids..."
                     : `Discover ${neos.length} near-Earth objects (NEOs) making close approaches to Earth this week. Select an asteroid below to visualize its trajectory, analyze impact potential, and understand the scale of these cosmic visitors.`
                 }
             </p>
@@ -219,13 +219,16 @@ const AstroDodgeGame = ({ onClose }) => {
         setExplosions([]);
     };
 
-    const endGame = () => {
+    const endGame = useCallback(() => {
         setGameState('gameover');
+        setAsteroids([]);
+    }, []);
+
+    useEffect(() => {
         if (score > highScore) {
             setHighScore(score);
         }
-        setAsteroids([]);
-    };
+    }, [score, highScore]);
 
     useEffect(() => {
         if (gameState !== 'playing') return;
@@ -234,8 +237,12 @@ const AstroDodgeGame = ({ onClose }) => {
             if (gameState !== 'playing') return;
 
             const size = Math.random() > 0.7 ? 'small' : Math.random() > 0.4 ? 'medium' : 'large';
-            const sizeMap = { small: 30, medium: 50, large: 70 };
-            const speedMap = { small: 3 + score / 100, medium: 2 + score / 150, large: 1.5 + score / 200 };
+            const sizeMap = { small: 60, medium: 80, large: 100 };
+            const speedMap = {
+                small: (1.5 + score / 200) * 0.5,
+                medium: (1.2 + score / 250) * 0.5,
+                large: (0.8 + score / 300) * 0.5
+            };
             const pointsMap = { small: 15, medium: 10, large: 5 };
 
             const newAsteroid = {
@@ -290,12 +297,12 @@ const AstroDodgeGame = ({ onClose }) => {
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [gameState]);
+    }, [gameState, endGame]);
 
     const handleAsteroidClick = (asteroid) => {
         setAsteroids(prev => prev.filter(a => a.id !== asteroid.id));
         setScore(s => s + asteroid.points);
-        
+
         setExplosions(prev => [...prev, {
             id: asteroid.id,
             x: asteroid.x,
@@ -311,9 +318,9 @@ const AstroDodgeGame = ({ onClose }) => {
         <div className="game-overlay">
             <div className="game-modal">
                 <button className="game-close" onClick={onClose}>✕</button>
-                
+
                 <div className="game-header">
-                    <h2>🌠 Astro Dodge</h2>
+                    <h2><span style={{WebkitTextFillColor: 'initial', background: 'none'}}>🌠 </span> Astro Dodge</h2>
                     <div className="game-stats">
                         <div className="stat">
                             <span className="stat-label">Score:</span>
@@ -329,9 +336,9 @@ const AstroDodgeGame = ({ onClose }) => {
                 <div className="health-bar-container">
                     <div className="health-label">Earth Health: {health}%</div>
                     <div className="health-bar">
-                        <div 
-                            className="health-fill" 
-                            style={{ 
+                        <div
+                            className="health-fill"
+                            style={{
                                 width: `${health}%`,
                                 backgroundColor: health > 60 ? '#4ade80' : health > 30 ? '#facc15' : '#ef4444'
                             }}
